@@ -16,6 +16,7 @@ class RegisterTransactionData extends Data
         public readonly ?string $merchant = null,
         public readonly ?string $notes = null,
         public readonly ?int $target_payable_id = null,
+        public readonly ?int $category_id = null,
     ) {}
 
     public static function rules(): array
@@ -30,6 +31,7 @@ class RegisterTransactionData extends Data
             'merchant' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'target_payable_id' => ['required_if:type,transfer', 'nullable', 'integer'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
         ];
     }
 }

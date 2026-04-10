@@ -3,6 +3,7 @@
 namespace App\Domain\Transactions\Actions;
 
 use App\Domain\Accounts\Models\Account;
+use App\Domain\Categories\Models\Category;
 use App\Domain\CreditCards\Models\CreditCard;
 use App\Domain\Tags\Services\TaggingService;
 use App\Domain\Transactions\DTOs\RegisterTransactionData;
@@ -23,7 +24,11 @@ class RegisterTransactionAction
         $payable = $this->resolvePayable($user, $data->payable_type, $data->payable_id);
 
         return DB::transaction(function () use ($user, $data, $payable) {
-            // 2. Create the primary transaction
+            // 2. Resolve category_id: use provided or fall back to 'others'
+            $categoryId = $data->category_id
+                ?? Category::whereNull('user_id')->where('slug', 'others')->value('id');
+
+            // 3. Create the primary transaction
             $transaction = Transaction::create([
                 'user_id' => $user->id,
                 'payable_type' => get_class($payable),
@@ -34,9 +39,10 @@ class RegisterTransactionAction
                 'merchant' => $data->merchant,
                 'transacted_at' => $data->transacted_at,
                 'notes' => $data->notes,
+                'category_id' => $categoryId,
             ]);
 
-            // 3. Handle transfer: create paired transaction
+            // 4. Handle transfer: create paired transaction
             if ($data->type === 'transfer') {
                 $targetPayable = $this->resolvePayable($user, $data->payable_type, $data->target_payable_id);
 
@@ -51,17 +57,18 @@ class RegisterTransactionAction
                     'transacted_at' => $data->transacted_at,
                     'notes' => $data->notes,
                     'transfer_pair_id' => $transaction->id,
+                    'category_id' => $categoryId,
                 ]);
 
                 // Link the original transaction back to the pair
                 $transaction->update(['transfer_pair_id' => $paired->id]);
             }
 
-            // 4. Auto-tag
+            // 5. Auto-tag
             $this->taggingService->assign($transaction);
 
-            // 5. Return with tags loaded
-            return $transaction->load('tags');
+            // 6. Return with tags and category loaded
+            return $transaction->load(['tags', 'category']);
         });
     }
 

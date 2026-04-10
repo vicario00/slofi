@@ -2,6 +2,7 @@
 
 namespace App\Domain\Transactions\Models;
 
+use App\Domain\Categories\Models\Category;
 use App\Domain\Tags\Models\Tag;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,7 @@ class Transaction extends Model
         'transacted_at',
         'notes',
         'transfer_pair_id',
+        'category_id',
     ];
 
     protected $casts = [
@@ -41,5 +43,10 @@ class Transaction extends Model
     public function transferPair(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'transfer_pair_id');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 }

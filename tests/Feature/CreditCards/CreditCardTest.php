@@ -19,7 +19,7 @@ class CreditCardTest extends TestCase
             'name' => 'My Visa',
             'last_four' => '1234',
             'cutoff_day' => 15,
-            'payment_day' => 10,
+            'payment_grace_days' => 10,
             'credit_limit' => 10000.00,
             'currency' => 'MXN',
             'color' => '#0000FF',
@@ -35,7 +35,7 @@ class CreditCardTest extends TestCase
             'name' => 'My Mastercard',
             'last_four' => '4321',
             'cutoff_day' => 20,
-            'payment_day' => 15,
+            'payment_grace_days' => 15,
             'credit_limit' => 5000.00,
             'currency' => 'MXN',
         ]);
@@ -82,7 +82,7 @@ class CreditCardTest extends TestCase
             'name' => 'Bad Card',
             'last_four' => '9999',
             'cutoff_day' => 31,
-            'payment_day' => 15,
+            'payment_grace_days' => 15,
             'credit_limit' => 1000.00,
             'currency' => 'MXN',
         ]);

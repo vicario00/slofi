@@ -34,7 +34,7 @@ class RegisterTransactionTest extends TestCase
             'name' => 'My Visa',
             'last_four' => '1234',
             'cutoff_day' => 15,
-            'payment_day' => 10,
+            'payment_grace_days' => 10,
             'credit_limit' => 10000.00,
             'currency' => 'MXN',
         ], $overrides));

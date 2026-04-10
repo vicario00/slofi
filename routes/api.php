@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CreditCardController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TagRuleController;
@@ -26,4 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Transactions
     Route::apiResource('transactions', TransactionController::class)->only(['index', 'store', 'show']);
+
+    // Categories
+    Route::apiResource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
 });
