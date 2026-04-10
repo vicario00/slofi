@@ -1,6 +1,6 @@
 # Slofi — Personal Finance API
 
-A REST API for personal finance management built with Laravel 13. Slofi lets you track accounts, credit cards, and transactions with automatic categorization via a rule-based tagging engine.
+A REST API for personal finance management built with Laravel 13. Slofi lets you track accounts, credit cards, and transactions with automatic categorization via a rule-based tagging engine and an LLM-powered parser service.
 
 ## About the Project
 
@@ -10,10 +10,13 @@ The architecture follows **Screaming Architecture** with an **Action pattern**: 
 
 ```
 app/Domain/
-├── Accounts/        — Checking, savings, cash, and investment accounts
-├── CreditCards/     — Credit cards with billing cycle tracking
-├── Transactions/    — Income, expenses, and transfers (polymorphic payable)
-└── Tags/            — Tag taxonomy + rule-based auto-tagging engine
+├── Accounts/          — Checking, savings, cash, and investment accounts
+├── CreditCards/       — Credit cards with billing cycle tracking
+├── Transactions/      — Income, expenses, and transfers (polymorphic payable)
+├── Tags/              — Tag taxonomy + rule-based auto-tagging engine
+├── Categories/        — Structured categorization (system + user-defined, i18n)
+├── RecurringExpenses/ — Fixed recurring expenses and loans with end date tracking
+└── Installments/      — Installment plans (compras a meses) with per-payment tracking
 ```
 
 ## Features
@@ -24,25 +27,43 @@ app/Domain/
 - Per-account balance tracking
 
 ### Credit Cards
-- Track credit cards with configurable cutoff and payment days
+- Track credit cards with configurable cutoff day and payment grace days
 - **Billing cycle engine**: automatically computes the current billing period start/end and outstanding balance, with correct handling for short months (e.g. cutoff day 31 in February clamps to 28/29)
+- `payment_due_date` computed dynamically from cutoff date + grace days
 
 ### Transactions
 - Record income, expense, and transfer transactions
 - Polymorphic payable — a transaction can belong to an account or a credit card
 - **Atomic transfers**: debit + credit are created inside a database transaction, with bidirectional `transfer_pair_id` linking
-- Filtering by date range, payable, type, and tag via query parameters
+- Filtering by date range, payable, type, tag, and category via query parameters
 
 ### Automatic Tagging
 - Rule-based tagging engine: define rules on `description` or `merchant` fields using `contains`, `starts_with`, or `equals` operators (all case-insensitive)
 - Rules are evaluated in descending priority order; a transaction can receive multiple tags
 - Tags are assigned automatically on every transaction registration via a swappable `TaggingStrategyInterface`
 
+### Categories
+- 21 system categories (expenses + income + `others`), translated via i18n — slugs stored in DB, names resolved by locale
+- Users can create their own custom categories on top of the system ones
+- One category per transaction — structured classification alongside free-form tags
+
+### Recurring Expenses
+- Define fixed recurring expenses (rent, subscriptions, gym) with configurable frequency: `daily`, `weekly`, `monthly`, or `yearly`
+- A scheduled job (`ProcessScheduledTransactionsJob`) runs daily and auto-generates the corresponding transaction on each due date
+- **Loan support**: set `ends_at` on a recurring expense to model a loan — the job stops generating transactions once the end date is reached
+
+### Installment Plans
+- Track purchases made in installments (compras a meses) linked to a credit card
+- Records total installments, amount per installment, and a running count of paid installments
+- A job generates the installment transaction on each billing cycle cutoff date and marks the plan as completed when all installments are paid
+
 ### Auth
 - Token-based authentication via **Laravel Sanctum**
 - Scoped resource authorization — users can only access their own data
 
 ## Tech Stack
+
+### Backend API (this repo)
 
 | Layer | Technology |
 |---|---|
@@ -51,32 +72,38 @@ app/Domain/
 | Auth | Laravel Sanctum |
 | Data objects | spatie/laravel-data |
 | Query filtering | spatie/laravel-query-builder |
-| Database | SQLite (testing) / MySQL or PostgreSQL (production) |
+| Database | SQLite (testing) / MySQL (production) |
+
+### Full System
+
+| Layer | Technology | Status |
+|---|---|---|
+| Backend API | Laravel 13 (PHP 8.5) | ✅ Complete |
+| Parser / AI Service | Python + FastAPI + Groq (llama-3.1-8b-instant) | 🔲 Next |
+| Mobile | React Native | 🔲 Planned |
+| Web | React + Inertia.js | 🔲 Planned |
+| TUI | Go + Bubble Tea | 🔲 Planned |
+| Deploy / CI/CD | GitHub Actions + Apache + DigitalOcean | 🔲 Planned |
 
 ## Project Status
 
-| Layer | Status |
-|---|---|
-| Laravel REST API | ✅ Complete |
-| React Native (mobile) | 🔲 Planned |
-| React + Inertia.js (web) | 🔲 Planned |
-| Go + Bubble Tea (TUI) | 🔲 Planned |
-
 ### API Milestones
 
-| Milestone | Tasks | Status |
-|---|---|---|
-| M0 — Scaffolding & config | 5 / 5 | ✅ |
-| M1 — Migrations | 6 / 6 | ✅ |
-| M2 — Authentication | 3 / 3 | ✅ |
-| M3 — Accounts | 6 / 6 | ✅ |
-| M4 — Credit Cards | 7 / 7 | ✅ |
-| M5 — Tags & Rules | 11 / 11 | ✅ |
-| M6 — Transactions | 6 / 6 | ✅ |
-| M7 — Test Suite | 7 / 7 | ✅ |
-| **Total** | **51 / 51** | ✅ |
+| Milestone | Status |
+|---|---|
+| M0 — Scaffolding & config | ✅ |
+| M1 — Migrations | ✅ |
+| M2 — Authentication | ✅ |
+| M3 — Accounts | ✅ |
+| M4 — Credit Cards | ✅ |
+| M5 — Tags & Rules | ✅ |
+| M6 — Transactions | ✅ |
+| M7 — Test Suite | ✅ |
+| M8 — Categories + i18n | ✅ |
+| M9 — Recurring Expenses + Installment Plans | ✅ |
+| M9.1 — Loan support (ends_at) | ✅ |
 
-**42 tests, 42 passing.**
+**70 tests, 70 passing.**
 
 ## API Reference
 
@@ -85,8 +112,10 @@ All endpoints require a Bearer token (from `POST /api/login`) unless noted.
 ### Auth
 | Method | Endpoint | Description |
 |---|---|---|
+| POST | `/api/register` | Register a new user |
 | POST | `/api/login` | Obtain an API token |
 | POST | `/api/logout` | Revoke the current token |
+| GET | `/api/user` | Get the authenticated user profile |
 
 ### Accounts
 | Method | Endpoint | Description |
@@ -119,6 +148,7 @@ All endpoints require a Bearer token (from `POST /api/login`) unless noted.
 - `type` — `income`, `expense`, or `transfer`
 - `payable_type` + `payable_id` — filter by account or credit card
 - `tag_id` — filter by tag
+- `category_id` — filter by category
 
 ### Tags
 | Method | Endpoint | Description |
@@ -134,6 +164,33 @@ All endpoints require a Bearer token (from `POST /api/login`) unless noted.
 | PUT/PATCH | `/api/rules/{id}` | Update a rule |
 | DELETE | `/api/rules/{id}` | Delete a rule |
 
+### Categories
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/categories` | List all categories (system + user's custom) |
+| POST | `/api/categories` | Create a custom category |
+| GET | `/api/categories/{id}` | Get a category |
+| PUT/PATCH | `/api/categories/{id}` | Update a custom category |
+| DELETE | `/api/categories/{id}` | Delete a custom category |
+
+### Recurring Expenses
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/recurring-expenses` | List all recurring expenses |
+| POST | `/api/recurring-expenses` | Create a recurring expense |
+| GET | `/api/recurring-expenses/{id}` | Get a recurring expense |
+| PUT/PATCH | `/api/recurring-expenses/{id}` | Update a recurring expense |
+| DELETE | `/api/recurring-expenses/{id}` | Delete a recurring expense |
+
+### Installment Plans
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/installment-plans` | List all installment plans |
+| POST | `/api/installment-plans` | Create an installment plan |
+| GET | `/api/installment-plans/{id}` | Get an installment plan |
+| PUT/PATCH | `/api/installment-plans/{id}` | Update an installment plan |
+| DELETE | `/api/installment-plans/{id}` | Delete an installment plan |
+
 ## Getting Started
 
 ```bash
@@ -144,8 +201,8 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# Run migrations
-php artisan migrate
+# Run migrations and seed system categories
+php artisan migrate --seed
 
 # Run the test suite
 php artisan test
