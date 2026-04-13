@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'parser' => [
+        'url' => env('PARSER_URL', 'http://localhost:8001'),
+        'enabled' => env('PARSER_ENABLED', false),
+        'threshold' => env('PARSER_CONFIDENCE_THRESHOLD', 0.75),
+    ],
+
 ];

@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CreditCardController;
 use App\Http\Controllers\InstallmentPlanController;
+use App\Http\Controllers\ParseTransactionController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TagRuleController;
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('tags.rules', TagRuleController::class)->shallow();
 
     // Transactions
+    Route::post('/transactions/parse', ParseTransactionController::class);
     Route::apiResource('transactions', TransactionController::class)->only(['index', 'store', 'show']);
 
     // Categories
