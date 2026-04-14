@@ -1,0 +1,21 @@
+info:
+  name: Parse
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/transactions/parse"
+  body:
+    type: json
+    data: |-
+      {
+      "raw_text": "me compré 500 pesos de gomitas ayer"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

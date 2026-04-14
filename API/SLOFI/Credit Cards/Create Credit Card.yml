@@ -1,0 +1,26 @@
+info:
+  name: Create Credit Card
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/credit-cards"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Oro BBVA",
+        "cutoff_day": 8,
+        "payment_grace_days": 20,
+        "credit_limit": 150000,
+        "currency": "MXN",
+        "last_four": "1234"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

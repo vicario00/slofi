@@ -21,15 +21,15 @@ class TransactionController extends Controller
                 ->where('user_id', $request->user()->id)
                 ->with('tags')
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('payable_type'),
                 AllowedFilter::exact('payable_id'),
                 AllowedFilter::exact('type'),
                 AllowedFilter::callback('from', fn ($q, $v) => $q->whereDate('transacted_at', '>=', $v)),
                 AllowedFilter::callback('to', fn ($q, $v) => $q->whereDate('transacted_at', '<=', $v)),
                 AllowedFilter::callback('tag_id', fn ($q, $v) => $q->whereHas('tags', fn ($t) => $t->where('tags.id', $v))),
-            ])
-            ->allowedSorts(['transacted_at', 'amount', 'created_at'])
+            )
+            ->allowedSorts('transacted_at', 'amount', 'created_at')
             ->defaultSort('-transacted_at')
             ->paginate($request->get('per_page', 20));
 

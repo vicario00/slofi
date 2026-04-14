@@ -1,0 +1,28 @@
+info:
+  name: Create Transactions
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{base_url}}/transactions"
+  body:
+    type: json
+    data: |-
+      {
+        "payable_type": "account",
+        "payable_id": 1,
+        "amount": 500,
+        "type": "expense",
+        "description": "Compra de gomitas",
+        "transacted_at": "2026-04-13",
+        "merchant": "Gomitas",
+        "notes": "MXN"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
